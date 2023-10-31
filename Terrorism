@@ -1,0 +1,333 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# # Terrorism Data Analysis
+
+# In[1]:
+
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
+
+
+# The Dataset
+# The Dataset was extracted from the Global Terrorism Database (GTD) - an open-source database including information on terrorist attacks around the world from 1970 through 2017. The GTD includes systematic data on domestic as well as international terrorist incidents that have occurred during this time period and now includes more than 180,000 attacks. The database is maintained by researchers at the National Consortium for the Study of Terrorism and Responses to Terrorism (START), headquartered at the University of Maryland.
+# 
+
+# In[2]:
+
+
+gtd = pd.read_csv(r"C:\Users\Vansh\Downloads\EDA Terrorism.csv",encoding=('ISO-8859-1'),low_memory =False)
+gtd.head(2)
+
+
+# In[3]:
+
+
+gtd_df = gtd[['eventid', 'iyear','success','imonth', 'iday', 'country_txt',
+              'region_txt','suicide', 'attacktype1_txt', 'targtype1_txt', 'target1','nkill']]
+
+
+# In[4]:
+
+
+gtd_df.head(1)
+
+
+# In[5]:
+
+
+pd.set_option('display.max_rows', None)
+
+
+# # Data Cleaning 
+# 
+
+# In[6]:
+
+
+gtd_df.info()
+
+
+# In[7]:
+
+
+gtd_df.isnull().sum()
+
+
+# # Explanatory Data Analysis
+# 
+# 
+
+# ## Terrorist Attack trends based on the region
+# 
+
+# In[11]:
+
+
+y_a_region = gtd_df.groupby(['iyear', 'region_txt']).size().reset_index(name='count')
+
+
+# In[12]:
+
+
+sns.lineplot(x='iyear', y='count',hue='region_txt', data=yearly_attacks_region )
+plt.title('Terrorist Attacks Trends in Regions from 1970 to 2017')
+plt.xlabel('Years')
+plt.ylabel('Number of Attacks')
+plt.show()
+
+
+# Here we can see during the 1970s to the 1980s, most of the terrorist attacks took place in Central Asia, while the figure was relatively low compared to present day, it was still huge when compared to the other regions. During the 1980s to early parts of the 1990s, South America has seen more terrorist attacks, then during the 2000s to 2010s, the number of terrorist attacks in the Middle East and North Africa and South America increased significantly.
+
+# # Countries with the most terrorist attacks
+# 
+
+# In[13]:
+
+
+country_attacks = gtd_df.groupby('country_txt').size().reset_index(name='count').sort_values(by='count', ascending = False)
+top5_country = country_attacks.head(5)
+sns.barplot(x='country_txt', y='count', data=top5_country)
+plt.title('Top 5 countries with the most terrorist attacks from 1970 to 2017')
+plt.xlabel('Countries')
+plt.ylabel('Number of Terrorist Attacks')
+plt.show()
+
+
+# Looks do a deep dive into the the last 5 years, especially with the dramatic increase of terrorist attacks. What could have possibly contributed to that?
+
+# In[14]:
+
+
+narrow_2017 = gtd_df[gtd_df['iyear'] >= 2012]
+narrow_2017_count = narrow_2017.groupby(['iyear', 'country_txt']).size().reset_index(name='count')
+narrow_2017_count_5 = narrow_2017_count.groupby('iyear').apply(lambda x: x.nlargest(5, 'count')).reset_index(drop=True)
+
+
+# In[15]:
+
+
+sns.lineplot(x='iyear', y='count', hue='country_txt', data=narrow_2017_count_5)
+
+
+# Here we can see some of the countries with the most terrorist attacks from 2012 to 2017. Iraq had the most terrorist attacks, with the most attacks during 2014.
+# 
+# 
+
+# In[16]:
+
+
+gtd_df.head(1)
+
+
+# # Casualties due to Terrorist Attacks around the world
+
+# In[22]:
+
+
+nkills_attack = gtd_df.groupby('attacktype1_txt')[['nkill']].sum().reset_index()
+nkills_attack
+
+
+# In[23]:
+
+
+plt.figure(figsize=(25,10))
+sns.barplot(x='attacktype1_txt', y='nkill', data=nkills_attack)
+plt.xlabel('Attack Type')
+plt.ylabel('Total Number of Kills')
+plt.title('Total Number of Kills by Attack Type')
+plt.xticks(rotation=90)
+plt.show()
+
+
+# Despite Armed Assault having way less events and a much lower success rate, it stands as one of the attack types with the highest number of casualties along side bombing and explosion.
+
+# # Let's take a look at my two dearest countries, India and pakistan.
+
+# In[31]:
+
+
+mc = gtd_df[(gtd_df['country_txt'] == 'India') | (gtd_df['country_txt'] == 'Pakistan')]
+mc.head(5)
+
+
+# # Let's start with India, let's see if we can identify any trend over time.
+
+# # Terrorist Attacks in India
+
+# In[32]:
+
+
+India = gtd_df[(gtd_df['country_txt'] =='India')]
+num_ofattacks = India.groupby('iyear').size().reset_index(name="count")
+num_ofattacks
+
+
+# In[33]:
+
+
+Ind_sumattacks = num_ofattacks['count'].sum()
+Ind_sumattacks
+
+print('Total No. of attacks in India',Ind_sumattacks)
+
+
+# India had a total of 11960 terrorist attacks.
+
+# In[34]:
+
+
+plt.figure(figsize=(10,5))
+plt.title("Yearly Trend of Terrorist Attcks in India from 1974 t0 2017")
+plt.xlabel('Year')
+plt.ylabel('Number of Attacks')
+sns.lineplot(x="iyear", y="count", data=num_ofattacks)
+
+
+# # Let's look at the success rate of the attacks over the years.
+
+# In[35]:
+
+
+succ_Ind = India.groupby(['success']).size().reset_index(name='count')
+succ_Ind['percentage'] = succ_Ind['count']/ Ind_sumattacks *100
+succ_Ind
+
+
+# In[36]:
+
+
+sns.barplot(x = 'success', y = 'percentage', data=succ_Ind)
+plt.title("Outcome of Terrorist Attacks in India")
+plt.xlabel("Outcome")
+
+
+# Of all the 11960  attacks 85% were successful, while 15% was unsuccessful.
+
+# # Terrorist Attack Types in India
+
+# In[37]:
+
+
+India_atype= India.groupby(['attacktype1_txt','success']).size().reset_index(name='count')
+India_atype
+
+
+# In[38]:
+
+
+plt.figure(figsize=(25,10))
+sns.barplot(x='attacktype1_txt', y='count', hue= 'success', data=India_atype, color="red")
+plt.title("Terrorist Attacks and their outcome in India")
+plt.xlabel("Attack Type")
+
+
+# here we can see that Bombong/Explosion Attacks was the most frequent type of attack, next to Armed Assualt. Bombing/Explosion has a very high success rate, with only 2500/3500 attacks succesful!
+
+# # Attacks Types in India and Casualties
+
+# In[39]:
+
+
+nkilla_Ind = India.groupby('attacktype1_txt')[['nkill']].sum().reset_index()
+nkilla_Ind
+
+
+# In[40]:
+
+
+plt.figure(figsize=(25,10))
+sns.barplot(x='attacktype1_txt', y='nkill', data=nkillattack_Ind)
+plt.title("Attack types in India and their casualties")
+plt.xlabel("Attack type")
+
+
+# here we can see that Armed Assault had the highest number of casualtie of India. Next with Assasination and Bombing/Explosion. All of the others, even though they had some success, thankfull resulted in no casualties.
+
+# # Terrorist Attacks in Pakistan.
+
+# Let's take a look at Pakistan
+
+# In[41]:
+
+
+Pakistan = gtd_df[(gtd_df['country_txt'] == 'Pakistan')]
+Pakistan.head(1)
+
+
+# In[43]:
+
+
+#how many number of attacks where there in Pakistan
+Pak_attacks = Pakistan['eventid'].count()
+print('There were',Pak_attacks ,'attacks in Pakistan.')
+
+
+# In[44]:
+
+
+Pak_success = Pakistan.groupby('success').size().reset_index(name='count')
+Pak_success['percentage'] = Pak_success['count'] / Pak_attacks * 100
+Pak_success
+
+
+# In[45]:
+
+
+sns.barplot(x='success', y='percentage', data = Pak_success)
+plt.title("Outcome of Terrorist Attacks in Pakistan")
+plt.xlabel("Outcome")
+
+
+#  out Of the  14368 attacks in Pakistan, 87% were successful, while 13% was unsuccessful.
+
+# # Attack types in Pakistan and their success rates.
+
+# In[46]:
+
+
+attack_types_Pakistan = Pakistan.groupby(['attacktype1_txt','success']).size().reset_index(name='count')
+attack_types_Pakistan
+
+
+# In[47]:
+
+
+plt.figure(figsize=(25,10))
+sns.barplot(x='attacktype1_txt', y='count', hue='success', data=attack_types_Pakistan, color = "red")
+plt.title("Facility ")
+
+
+# Compared to the world terrorist attacks trend even India, Pakistan's highest terrorist attacks comes from Facility/ Infrastructure Attack, with Bombing and Explosion with a rather high success rate.
+
+# In[48]:
+
+
+nkills_Pakistan = Pakistan.groupby('attacktype1_txt')[['nkill']].sum().reset_index()
+nkills_Pakistan
+
+
+# In[49]:
+
+
+plt.figure(figsize=(25,10))
+sns.barplot(x='attacktype1_txt', y='nkill', data=nkills_Pakistan)
+
+
+# Thankfully it had a much lower number of casuality. Armed Assault and Bombing/Explosion has the highest number of casualties.
+
+# # Conclusion
+# 
+
+# 
+# Terrorism Attacks all around the world is becoming increasingly a problem! the number of terrorist attacks in the Middle East and North Africa and South America increased significantly. 89% of attacks have been successful, with armed asssault being the most used terrorist attacks and armed assault and bombing/ explosion causing the most casualties.
+
+# In[ ]:
+
+
+
+
